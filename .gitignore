@@ -1,0 +1,58 @@
+# Logs
+*.log
+logs/
+Logs/
+
+# Python bytecode/cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+
+# Flask cache and build directories
+instance/
+__pycache__/
+*.py[cod]
+
+# Ignore environment and config files (if applicable)
+.env
+*.env
+*.env.*
+
+# Ignore compiled C extensions
+*.so
+
+# Ignore SQLite database (if needed)
+*.sqlite3
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore distribution/packaging files
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Ignore pytest cache
+.pytest_cache/
+
+# Ignore coverage reports
+htmlcov/
+.coverage
+.tox/
+
+# Ignore various IDE/editor specific files
+.vscode/
+.idea/
+*.swp
+logFile.txt
+output_details.txt

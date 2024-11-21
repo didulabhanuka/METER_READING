@@ -1,0 +1,56 @@
+[
+    {
+        "client_id": "TM-sYzsFPTLrHr8VRxmWQA",
+        "client_secret": "Bcxw_ONfVP0TpCtqD0qUoLbFhHT4hvdrAz3QOTOk51M",
+        "permissions": {
+            "/api/resource": ["GET", "POST"],
+            "/api/another-resource": ["GET"]
+        }
+    },
+    {
+        "client_id": "pm_G6G51H_0lC6mw69J5Xg",
+        "client_secret": "rufd3RKRLcOFWj-3qluukW41qk_CUtWmP8hGWLwPPBk",
+        "permissions": {
+            "/api/resource": ["GET"]
+        }
+    },
+    {
+        "client_id": "aXJClJVswl9p3SrBn7oRpQ",
+        "client_secret": "1bHtgxAMlyKEZnwp3armyRHohepvnwEjzl87zk21Q34",
+        "permissions": {
+            "/api/another-resource": ["POST"]
+        }
+    },
+    {
+        "client_id": "RE_L6NHzynQL-W0LkN2loQ",
+        "client_secret": "XbADDFB_Di4bKlzaweDzyHzz7sagTCU96t556eqgmIA",
+        "permissions": {
+            "/api/resource": ["GET", "POST"],
+            "/api/another-resource": ["GET", "POST"],
+            "/api/admin": ["GET", "POST"]
+        }
+    },
+    {
+        "client_id": "W6Qi6sRFuYYwGY_SvkPjjg",
+        "client_secret": "q-4xAVHcYZ_kOcBQBItqnIMYQNkIZwcNAyDflnREMrs",
+        "permissions": {
+            "/public-api/meters/retreve-readings": ["POST"],
+            "/public-api/meters/bulk-retrieve-readings": ["POST"]
+        }
+    },
+    {
+        "client_id": "f-6F9nfTZUkxC_y-TtZh8Q",
+        "client_secret": "DoEBO2UpuVQrfrSwPgz5GvISArT9iORE4R-GlUPbx5o",
+        "permissions": {
+            "/api/another-resource": ["PUT"]
+        }
+    },
+    {
+        "client_id": "DISWc-zRPoE9IrwRIGnTvA",
+        "client_secret": "SGON2XIKsG80vs_azIaqnRdKdLg9vtrF1qk3V93AnSc",
+        "permissions": {
+            "/api/resource": ["GET", "POST"],
+            "/api/admin": ["GET"]
+        }
+    }
+]
