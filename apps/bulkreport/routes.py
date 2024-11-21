@@ -9,14 +9,13 @@ from . import blueprint
 from .bulkprocess_api import load_bulk_meter_readings
 from apps.apis.routes import check_permissions  
 
-@on_exception(expo, RateLimitException, max_tries=3)
-@limits(calls=10, period=60)  # 10 requests per minute
 @blueprint.route('/public-api/meters/bulk-retrieve-readings', methods=['POST'])
-def bulk_retrieve_data():
+def bulk_retrieve_readings():
     try:
         # Parse JSON body
         data = request.get_json()
         logical_device_names = data.get('logical_device_names', [])
+        division_id = data.get('division_id')
         date = data.get('date')
 
         # Validate input parameters
@@ -25,7 +24,11 @@ def bulk_retrieve_data():
                 'error': 'missing_or_invalid_parameters',
                 'message': 'Logical device names must be a non-empty list.'
             }), 400
-
+        if not division_id:
+            return jsonify({
+                'error': 'missing_division_id',
+                'message': 'Division ID is required.'
+            }), 400
         if not date:
             return jsonify({
                 'error': 'missing_date',
@@ -37,15 +40,15 @@ def bulk_retrieve_data():
 
         for device_name in logical_device_names:
             try:
-                # Call the function to load meter data for a single device
-                meter_data = load_bulk_meter_readings([device_name], date)
+                # Call the bulk meter readings function for each device
+                result = load_bulk_meter_readings([device_name], division_id, date)
 
                 # Check if data retrieval is successful
-                if meter_data:
+                if result:
                     results.append({
                         "logical_device_name": device_name,
                         "reading_status": "success",
-                        "data": meter_data[0] if meter_data else None  # Assuming the first result for a single device
+                        "data": result[0] if result else None  # Assuming a single result per device
                     })
                 else:
                     results.append({
@@ -54,7 +57,6 @@ def bulk_retrieve_data():
                         "data": None
                     })
             except Exception as e:
-                # Handle any issues per device and log them
                 logging.error(f"Error processing device {device_name}: {e}")
                 results.append({
                     "logical_device_name": device_name,
@@ -65,11 +67,6 @@ def bulk_retrieve_data():
         # Return the final results
         return jsonify({"result": results}), 200
 
-    except ValueError as ve:
-        logging.error("Value error during processing: %s", str(ve))
-        return jsonify({'error': 'value_error', 'message': str(ve)}), 422
-    except RateLimitException:
-        return jsonify({'error': 'too_many_requests', 'message': 'Rate limit exceeded. Please try again later.'}), 429
     except Exception as e:
-        logging.exception("An internal error occurred while processing the request: %s", str(e))
-        return jsonify({'error': 'internal_error', 'message': 'An unexpected error occurred.'}), 500
+        logging.exception("Unexpected error occurred while processing request.")
+        return jsonify({'error': 'internal_server_error', 'message': str(e)}), 500
