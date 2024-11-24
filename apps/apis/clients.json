@@ -34,8 +34,8 @@
         "client_id": "W6Qi6sRFuYYwGY_SvkPjjg",
         "client_secret": "q-4xAVHcYZ_kOcBQBItqnIMYQNkIZwcNAyDflnREMrs",
         "permissions": {
-            "/public-api/meters/retreve-readings": ["POST"],
-            "/public-api/meters/bulk-retrieve-readings": ["POST"]
+            "/ordinaryreport/public-api/meters/retreve-readings": ["POST"],
+            "/bulkreport/public-api/meters/bulk-retrieve-readings": ["POST"]
         }
     },
     {
