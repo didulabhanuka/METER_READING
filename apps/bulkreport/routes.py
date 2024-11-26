@@ -7,7 +7,9 @@ from pythonjsonlogger import jsonlogger
 from . import blueprint
 from .bulkprocess_api import load_bulk_meter_readings
 from apps.apis.routes import check_permissions
-from apps.apis.authServer import authorization_server
+from apps.apis.authServer import (
+    authorization_server
+)
 
 # Ensure Logs directory exists
 log_dir = 'Logs'
@@ -21,6 +23,7 @@ log_handler.setFormatter(formatter)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(log_handler)
+
 
 def validate_token_and_set_context():
     """Validate the token and attach token_info to request context."""

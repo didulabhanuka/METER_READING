@@ -1,0 +1,8 @@
+
+curl --location 'http://127.0.0.1:5002/public-api/meters/retreve-readings' \
+--header 'Authorization: Bearer QA4_NsLjsxyXpWwSir_19lEbqcfqbhGHe79AO3RU4vo' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'logical_device_name=19161429' \
+--data-urlencode 'divisionID=DD1' \
+--data-urlencode 'start_date=2024-09-03' \
+--data-urlencode 'end_date=2024-10-03'
