@@ -75,6 +75,17 @@ def bulk_retrieve_readings():
                 'message': 'Logical device names must be a non-empty list of alphanumeric strings.'
             }), 400
 
+        # Check if logical_device_names exceed the maximum limit of 100
+        if len(logical_device_names) > 100:
+            logger.warning({
+                "client_id": client_id,
+                "error": "Too many logical_device_names"
+            })
+            return jsonify({
+                'error': 'too_many_logical_device_names',
+                'message': 'The maximum number of logical device names allowed is 100.'
+            }), 400
+
         for name in logical_device_names:
             if not isinstance(name, str) or not re.match(r'^[A-Za-z0-9]+$', name):
                 results.append({

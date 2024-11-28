@@ -1,14 +1,18 @@
-curl --location 'http://127.0.0.1:5002/public-api/OAuth/token' \
+# Request to obtain an OAuth token (client_credentials grant type)
+curl --location 'http://127.0.0.1:5000/public-api/OAuth/token' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'grant_type=client_credentials' \
---data-urlencode 'client_id=W6Qi6sRFuYYwGY_SvkPjjg' \
---data-urlencode 'client_secret=q-4xAVHcYZ_kOcBQBItqnIMYQNkIZwcNAyDflnREMrs'
+--data-urlencode 'client_id=<your_client_id>' \
+--data-urlencode 'client_secret=<your_client_secret>'
 
-
-curl --location 'http://127.0.0.1:5002/public-api/OAuth/token/refresh' \
+# Request to refresh the OAuth token
+curl --location 'http://127.0.0.1:5000/public-api/OAuth/token/refresh' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'grant_type=refresh_token' \
---data-urlencode 'refresh_token=v-QMDtS52ACwoCDSwnjCzmTzVt-fpDNk4x57fJWVJ4U' \
---data-urlencode 'client_id=W6Qi6sRFuYYwGY_SvkPjjg'
+--data-urlencode 'refresh_token=<your_refresh_token>' \
+--data-urlencode 'client_id=<your_client_id>'
 
-
+# Request to create a new client (for testing purposes)
+curl --location 'http://127.0.0.1:5000/public-api/OAuth/create-client' \
+--header 'Content-Type: application/json' \
+--data '{"permissions": {"/protected-resource": ["GET", "POST"]}}'
