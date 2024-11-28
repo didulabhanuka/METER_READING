@@ -1,157 +1,140 @@
-## APIs Documentation
+# **API Documentation**
 
-This document outlines the core endpoints of the system, including their functionality, rate-limiting information, and necessary validation.
+## Introduction
 
-### General Authentication Flow
+This API allows clients to interact with the system for retrieving meter readings and other related data. The API uses OAuth2 for authentication and enforces rate limits to ensure fair usage.
 
-All API requests, except for `/public-api/OAuth/token` and `/public-api/OAuth/token/refresh`, require a valid OAuth2 Bearer token for authentication. This token must be included in the request header as `Authorization: Bearer {token}`.
+## Authentication
 
-### Rate Limiting
+All API requests, except those related to token generation (`/public-api/OAuth/token`), require a valid OAuth2 bearer token. This token should be included in the `Authorization` header of your request:
 
-- **General Rate Limiting**: The rate limits vary per endpoint but are globally enforced using Flask-Limiter and the `@limits` decorator. 
-- **Global Limit**: Requests are capped at 200 per day and 50 per hour for each unique client.
+```http
+Authorization: Bearer {token}
+```
+
+You can obtain an OAuth2 token via the `/public-api/OAuth/token` endpoint.
+
+## Base URL
+
+- **Bulk Report Endpoints**: `/bulkreport`
+- **Ordinary Report Endpoints**: `/ordinaryreport`
+- **General API**: `/`
+
+## Rate Limits
+
+- **General Rate Limiting**: Clients are allowed a maximum of 200 requests per day and 50 requests per hour.
 - **Specific Endpoint Limits**:
-  - `/public-api/OAuth/token`: 4 requests per hour per client.
-  - `/public-api/OAuth/token/refresh`: 4 requests per hour per client, with backoff for rate-limiting exceptions.
-  - `/public-api/meters/retrieve-readings`: 10 requests per minute.
+  - **OAuth token generation**: 4 requests per hour.
+  - **Meter readings**: 10 requests per minute for both bulk and ordinary reports.
+
+Exceeding these limits will result in a `429 Too Many Requests` error. 
+
+---
 
 ## Endpoints
 
-### `/public-api/OAuth/token` (POST)
+### **OAuth Endpoints**
+
+#### 1. `/public-api/OAuth/token` (POST)
 
 **Description**:  
-This endpoint allows clients to authenticate and obtain a new OAuth2 token.
-
-**Rate Limit**:  
-4 requests per hour per client.
+Authenticates the client and returns an access token.
 
 **Request Parameters**:
-- `client_id` (string): The unique identifier for the client.
-- `client_secret` (string): The client’s secret key.
-- `grant_type` (string): Optional. Defaults to `client_credentials`.
+- `client_id` (string): Your unique client identifier.
+- `client_secret` (string): Your client secret.
+- `grant_type` (string): Must be `client_credentials`.
 
 **Response**:
-- **Success (200)**: A new OAuth2 token is returned.
-- **Error (400)**: Invalid client ID or secret.
-- **Error (401)**: Client authentication failed.
+- **Success (200)**:  
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_in": 3600
+  }
+  ```
+- **Error (400)**: Invalid credentials.
 
-**Example**:
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer",
-  "expires_in": 3600
-}
-```
-
-### `/public-api/OAuth/token/refresh` (POST)
+#### 2. `/public-api/OAuth/token/refresh` (POST)
 
 **Description**:  
-This endpoint allows clients to refresh an expired token by providing a valid refresh token.
-
-**Rate Limit**:  
-4 requests per hour per client, with exponential backoff on rate limit exceptions.
+Refreshes an expired token.
 
 **Request Parameters**:
-- `client_id` (string): The unique identifier for the client.
-- `refresh_token` (string): The refresh token obtained earlier.
+- `refresh_token` (string): The refresh token from the original request.
 
 **Response**:
-- **Success (200)**: A new OAuth2 token is returned.
+- **Success (200)**: New access token.
 - **Error (400)**: Invalid refresh token.
-- **Error (429)**: Rate limit exceeded.
 
-**Example**:
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer",
-  "expires_in": 3600
-}
-```
+---
 
-### `/public-api/meters/bulk-retrieve-readings` (POST)
+### **Bulk Report Endpoints** (`/bulkreport`)
+
+#### 1. `/bulkreport/meters/bulk-retrieve-readings` (POST)
 
 **Description**:  
-This endpoint retrieves bulk meter readings for specified logical devices within a division and for a specific date. The request is logged for auditing purposes.
-
-**Rate Limit**:  
-10 requests per minute.
+Retrieves bulk meter readings for a specific division and date.
 
 **Request Parameters**:
-- `logical_device_names` (array of strings): A list of logical device names to retrieve readings for.
-- `division_id` (string): The division identifier (e.g., `DD1`, `DD2`).
-- `date` (string): The date for which the readings are requested. Must be in `YYYY-MM-DD` format, and the day should be the first of the month.
+- `logical_device_names` (array): List of logical device names.
+- `division_id` (string): Division identifier (e.g., `DD1`, `DD2`).
+- `date` (string): Date in `YYYY-MM-DD` format. Must be the first of the month.
 
 **Response**:
-- **Success (200)**: A list of readings for each logical device.
-- **Error (400)**: Invalid or missing parameters (e.g., invalid device name, unsupported division, etc.).
-- **Error (500)**: Internal server error.
+- **Success (200)**:
+  ```json
+  {
+    "result": [
+      { "logical_device_name": "device1", "reading_status": "success", "data": {...} },
+      { "logical_device_name": "device2", "reading_status": "error", "message": "Device not found" }
+    ]
+  }
+  ```
+- **Error (400)**: Invalid parameters.
+- **Error (500)**: Server error.
 
-**Example**:
-```json
-{
-  "result": [
-    {
-      "logical_device_name": "device1",
-      "reading_status": "success",
-      "data": {...}
-    },
-    {
-      "logical_device_name": "device2",
-      "reading_status": "error",
-      "message": "Device not found"
-    }
-  ]
-}
-```
+---
 
-### `/public-api/meters/retrieve-readings` (POST)
+### **Ordinary Report Endpoints** (`/ordinaryreport`)
+
+#### 1. `/ordinaryreport/meters/retrieve-readings` (POST)
 
 **Description**:  
-This endpoint retrieves meter readings for a given logical device within a specified date range.
-
-**Rate Limit**:  
-10 requests per minute.
+Retrieves meter readings for a specific device within a date range.
 
 **Request Parameters**:
-- `logical_device_name` (string): The name of the logical device.
-- `divisionID` (string): The division identifier (e.g., `DD1`, `DD2`).
-- `start_date` (string): The start date for the readings in `YYYY-MM-DD` format.
-- `end_date` (string): The end date for the readings in `YYYY-MM-DD` format.
+- `logical_device_name` (string): Logical device name.
+- `division_id` (string): Division identifier (e.g., `DD1`, `DD2`).
+- `start_date` (string): Start date (`YYYY-MM-DD`).
+- `end_date` (string): End date (`YYYY-MM-DD`).
 
 **Response**:
-- **Success (200)**: Meter readings for the requested device and date range.
-- **Error (400)**: Missing or invalid parameters.
-- **Error (500)**: Internal server error.
+- **Success (200)**:
+  ```json
+  {
+    "result": [
+      { "date": "2024-10-01", "reading": 123.45 },
+      { "date": "2024-10-02", "reading": 127.56 }
+    ]
+  }
+  ```
+- **Error (400)**: Invalid parameters.
+- **Error (500)**: Server error.
 
-**Example**:
-```json
-{
-  "result": [
-    {
-      "date": "2024-10-01",
-      "reading": 123.45
-    },
-    {
-      "date": "2024-10-02",
-      "reading": 127.56
-    }
-  ]
-}
-```
+---
 
 ## Error Codes
 
-- `400 Bad Request`: The client sent an invalid request (e.g., missing parameters, invalid data format).
-- `401 Unauthorized`: The client failed to authenticate.
-- `403 Forbidden`: The client does not have permission to access the resource.
-- `429 Too Many Requests`: The client has exceeded the allowed rate limits.
-- `500 Internal Server Error`: An unexpected error occurred on the server.
+- `400 Bad Request`: Invalid or missing parameters.
+- `401 Unauthorized`: Missing or invalid authentication token.
+- `403 Forbidden`: Insufficient permissions to access the resource.
+- `429 Too Many Requests`: Rate limit exceeded.
+- `500 Internal Server Error`: Unexpected server error.
 
-## Token and Permission Validation
+---
 
-Tokens are validated using OAuth2 standards. If a client is missing or has an invalid token, the server will respond with an error indicating the problem.
+## Token and Permissions
 
-**Permission Check**:  
-Each protected endpoint checks the token's permissions to ensure the client is authorized to access the requested resource. If a client lacks the necessary permissions for an endpoint, a `403 Forbidden` error is returned.
+Each request requires a valid OAuth2 token. Permissions are checked per client, and requests without proper authorization will return a `401 Unauthorized` error.
