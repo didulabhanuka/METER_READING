@@ -54,7 +54,7 @@ def check_permissions(f):
         return f(*args, **kwargs)
     return wrapper
 
-@blueprint.route('/public-api/OAuth/token', methods=['POST'])
+@blueprint.route('/OAuth/token', methods=['POST'])
 @limiter.limit("4 per hour", key_func=lambda: request.form.get('client_id'))
 def token():
     try:
@@ -83,7 +83,7 @@ def token():
 
 @on_exception(expo, RateLimitException, max_tries=3)
 @limits(calls=4, period=3600)
-@blueprint.route('/public-api/OAuth/token/refresh', methods=['POST'])
+@blueprint.route('/OAuth/token/refresh', methods=['POST'])
 def refresh_token():
     try:
         client_id = request.form.get('client_id')
@@ -103,7 +103,7 @@ def refresh_token():
         logging.error(f'Unexpected error in refresh token endpoint: {e}')
         return jsonify({'error': 'internal_server_error', 'message': 'An internal server error occurred.'}), 500
 
-@blueprint.route('/public-api/OAuth/create-client', methods=['POST'])
+@blueprint.route('/OAuth/create-client', methods=['POST'])
 def create_client():
     client_id = secrets.token_urlsafe(16)
     client_secret = secrets.token_urlsafe(32)
@@ -118,7 +118,7 @@ def create_client():
 
     return jsonify(client_data)
 
-@blueprint.route('/protected-resource', methods=['GET', 'POST'])
+@blueprint.route('/OAuth/test-protected-resource', methods=['GET', 'POST'])
 @check_permissions
 def protected_resource():
     return jsonify({"message": "Access granted!"})

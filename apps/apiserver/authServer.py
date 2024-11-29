@@ -8,7 +8,7 @@ import json
 from authlib.oauth2.rfc6749 import OAuth2Error, AuthorizationServer
 from authlib.oauth2.rfc6749.grants import ClientCredentialsGrant
 
-DB_FILE = "auth.db"
+DB_FILE = "apps/apiserver/auth.db"
 
 # Initialize the database
 def init_db():

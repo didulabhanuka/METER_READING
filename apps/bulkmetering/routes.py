@@ -4,10 +4,10 @@ import os
 from flask import request, jsonify, g
 from datetime import datetime
 from pythonjsonlogger import jsonlogger
-from . import blueprint
-from .bulkprocess_api import load_bulk_meter_readings
-from apps.apis.routes import check_permissions
-from apps.apis.authServer import (
+from apps.bulkmetering import blueprint
+from apps.bulkmetering.bulkprocess_api import load_bulk_meter_readings
+from apps.apiserver.routes import check_permissions
+from apps.apiserver.authServer import (
     authorization_server
 )
 
@@ -43,7 +43,7 @@ def validate_token_and_set_context():
     return None
 
 
-@blueprint.route('/public-api/meters/bulk-retrieve-readings', methods=['POST'])
+@blueprint.route('/retrieve-readings', methods=['POST'])
 @check_permissions
 def bulk_retrieve_readings():
     """Retrieve bulk meter readings with logging and validation."""
