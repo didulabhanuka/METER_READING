@@ -30,7 +30,6 @@ def get_db_connection_BA():
         database=BREAKDOWN_ASSIST_CONNECTION_PARAMS['database'],
     )
 
-
 def load_bulk_meter_readings(logical_device_names: List[str], division_id: str, date: str):
     try:
         # Validate and format date
@@ -70,7 +69,7 @@ def load_bulk_meter_readings(logical_device_names: List[str], division_id: str, 
         JOIN MeterAssignment ma ON mrbb.MeterId = ma.MeterId 
         WHERE mm.LogicalDeviceName IN ({device_names_str})
         AND mm.DivisionId = %s
-        AND mrbb.[DateTime] = DATEFROMPARTS(%s, %s, %s)
+        AND CAST(mrbb.DateTime AS DATE) = DATEFROMPARTS(%s, %s, %s)
         AND ma.AssetTypeId = 2;
         """
 

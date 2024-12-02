@@ -5,5 +5,5 @@ from flask import Blueprint
 blueprint = Blueprint(
     'apis_blueprint',
     __name__,
-    url_prefix='/public-api/auth'
+    url_prefix='/public-api/OAuth/'
 )

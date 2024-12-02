@@ -9,14 +9,12 @@ from backoff import on_exception, expo
 
 # Local Application/Library Imports
 from . import blueprint
-from apps.apiserver.routes import check_permissions
 from .ordinaryprocess_api import load_meter_by_logical_device_number, validate_date_range
 
 
 @on_exception(expo, RateLimitException, max_tries=3)
 @limits(calls=10, period=60)  # 10 requests per minute
 @blueprint.route('/retrieve-readings', methods=['POST'])
-@check_permissions
 def secure_data():
     try:
         # Parse JSON body

@@ -7,6 +7,7 @@ class Config(object):
     # Set up the App SECRET_KEY
     SECRET_KEY = os.getenv('SECRET_KEY', '9#99maLvMKk2T4*tghA7og$m')
 
+    HASH_ALGORITHM = 'HS256'
     # Assets Management
     ASSETS_ROOT = os.getenv('ASSETS_ROOT', '/static/assets')    
     

@@ -1,124 +1,48 @@
-import os
-import secrets
-import logging
-import sqlite3
-import json
-from flask import request, jsonify
-from ratelimit import limits, RateLimitException
-from backoff import on_exception, expo
+from flask import Blueprint, request, jsonify, g
 from authlib.oauth2.rfc6749 import OAuth2Error
+from authlib.oauth2.rfc6749.grants import ClientCredentialsGrant
+from werkzeug.exceptions import BadRequest
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from . import blueprint
-from .authServer import (
-    authorization_server,
-    save_client_to_db,
-    load_clients_from_db,
-)
+from apps.apiserver.authServer import OAuth2AuthorizationServer
+from apps.apiserver.authServer import initialize_database
+from apps.apiserver import blueprint
 
-# Initialize Flask-Limiter
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+authorization_server = OAuth2AuthorizationServer()
+initialize_database()
+authorization_server.register_grant(ClientCredentialsGrant)
 
-def check_permissions(f):
-    def wrapper(*args, **kwargs):
-        all_clients = load_clients_from_db()
+# Initialize Flask-Limiter for rate limiting
+limiter = Limiter(key_func=get_remote_address)
 
-        # Get the token from the Authorization header
-        token = request.headers.get('Authorization')
-        if not token or not token.startswith('Bearer '):
-            logging.warning("Missing or malformed token")
-            return jsonify({'error': 'missing_token', 'message': 'Authorization token is missing.'}), 401
-
-        token = token.split(' ')[1]
-        token_info = authorization_server.validate_token(token)
-        if not token_info:
-            logging.warning("Invalid or expired token")
-            return jsonify({'error': 'invalid_token', 'message': 'The provided token is invalid or expired.'}), 401
-
-        client_id = token_info['client_id']
-        client = next((cred for cred in all_clients if cred["client_id"] == client_id), None)
-        if not client:
-            logging.warning("Client not recognized")
-            return jsonify({'error': 'forbidden', 'message': 'Client not recognized.'}), 403
-
-        # Validate permissions
-        permissions = client.get('permissions', {})
-        if request.path not in permissions or request.method not in permissions[request.path]:
-            logging.warning(f"Access denied for {client_id} to {request.path} with method {request.method}")
-            return jsonify({'error': 'forbidden', 'message': 'You do not have access to this resource.'}), 403
-
-        return f(*args, **kwargs)
-    return wrapper
-
-@blueprint.route('/OAuth/token', methods=['POST'])
-@limiter.limit("4 per hour", key_func=lambda: request.form.get('client_id'))
-def token():
+@blueprint.route('/token', methods=['POST'])
+@limiter.limit("200 per day")
+def issue_token():
     try:
+        # Retrieve client credentials from the request
         client_id = request.form.get('client_id')
         client_secret = request.form.get('client_secret')
-        grant_type = request.form.get('grant_type', 'client_credentials')
-
-        if not client_id or not client_secret:
-            return jsonify({'error': 'invalid_client', 'message': 'Client ID and Client Secret are required.'}), 400
 
         # Authenticate the client
-        client = authorization_server.authenticate_client(request, grant_type)
-        if not client:
-            return jsonify({'error': 'invalid_client', 'message': 'Client authentication failed.'}), 401
-
-        # Generate a new token
-        new_token = authorization_server.handle_new_token(client, grant_type)
-        return jsonify(new_token)
+        client = authorization_server.authenticate_client(request, 'client_credentials')
+        
+        # Generate and return the JWT access token and refresh token
+        token_response = authorization_server.generate_jwt_token(client, 5)
+        g.token_info = token_response
+        return jsonify(token_response)
 
     except OAuth2Error as e:
-        return jsonify({'error': str(e), 'message': 'OAuth2 Error occurred.'}), 400
-    except Exception as e:
-        logging.error(f'Unexpected error in token endpoint: {e}')
-        return jsonify({'error': 'internal_server_error', 'message': 'An internal server error occurred.'}), 500
+        return jsonify(error=e.error, description=e.description), 400
+    except BadRequest as e:
+        return jsonify(error='invalid_request', description=str(e)), 400
 
-
-@on_exception(expo, RateLimitException, max_tries=3)
-@limits(calls=4, period=3600)
-@blueprint.route('/OAuth/token/refresh', methods=['POST'])
+@blueprint.route('/token/refresh', methods=['POST'])
 def refresh_token():
     try:
-        client_id = request.form.get('client_id')
         refresh_token = request.form.get('refresh_token')
-
-        if not client_id:
-            return jsonify({'error': 'invalid_client', 'message': 'Client ID is required.'}), 400
-
-        new_token = authorization_server.handle_refresh_token(refresh_token, client_id)
-        if 'error' in new_token:
-            return jsonify(new_token), 401
-        return jsonify(new_token)
-
-    except RateLimitException:
-        return jsonify({'error': 'too_many_requests', 'message': 'Rate limit exceeded. Please try again later.'}), 429
-    except Exception as e:
-        logging.error(f'Unexpected error in refresh token endpoint: {e}')
-        return jsonify({'error': 'internal_server_error', 'message': 'An internal server error occurred.'}), 500
-
-@blueprint.route('/OAuth/create-client', methods=['POST'])
-def create_client():
-    client_id = secrets.token_urlsafe(16)
-    client_secret = secrets.token_urlsafe(32)
-
-    permissions = request.json.get('permissions', {})  # Get permissions from the request
-    client_data = {
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "permissions": permissions
-    }
-    save_client_to_db(client_data)
-
-    return jsonify(client_data)
-
-@blueprint.route('/OAuth/test-protected-resource', methods=['GET', 'POST'])
-@check_permissions
-def protected_resource():
-    return jsonify({"message": "Access granted!"})
+        new_tokens = authorization_server.refresh_access_token(str(refresh_token))
+        g.token_info = new_tokens
+        return jsonify(new_tokens)
+    except OAuth2Error as e:
+        return jsonify(error=e.error, description=e.description), 400
