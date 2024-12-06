@@ -8,7 +8,7 @@ import json
 
 # Define the log directory and log file path
 log_dir = os.path.join(os.getcwd(), 'Logs')
-log_file = os.path.join(log_dir, 'app.log')
+log_file = os.path.join(log_dir, 'ordinary_retrieve_readings.log')
 
 # Database configuration
 SMART_METER_CONNECTION_PARAMS = Config.SMART_METER_CONNECTION_PARAMS

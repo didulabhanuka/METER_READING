@@ -13,7 +13,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from apps.config import Config
 from flask import g
+import os
 import datetime
+
+# Define the log directory and log file path
+log_dir = os.path.join(os.getcwd(), 'Logs')
+log_file = os.path.join(log_dir, 'auth_server.log')
 
 # Constants
 DB_FILE = "apps/apiserver/auth.db"

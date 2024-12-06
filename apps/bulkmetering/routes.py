@@ -11,14 +11,16 @@ from apps.bulkmetering.util import validate_date, validate_logical_device_names,
 log_dir = 'Logs'
 os.makedirs(log_dir, exist_ok=True)
 
-# Configure logging to use JSON format
-log_handler = logging.FileHandler(f'{log_dir}/bulk_app.log')  # Safe relative path
-formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(message)s')
-log_handler.setFormatter(formatter)
+# Configure logging to use JSON format for bulk_retrieve_readings route
+bulk_log_file = f'{log_dir}/bulk_retrieve_readings.log'
+bulk_log_handler = logging.FileHandler(bulk_log_file)  # Safe relative path
+bulk_log_formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(message)s')
+bulk_log_handler.setFormatter(bulk_log_formatter)
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(log_handler)
+# Create a dedicated logger for the bulk_retrieve_readings route
+bulk_logger = logging.getLogger('bulk_retrieve_readings_logger')
+bulk_logger.setLevel(logging.INFO)
+bulk_logger.addHandler(bulk_log_handler)
 
 
 @blueprint.route('/retrieve-readings', methods=['POST'])
@@ -27,7 +29,6 @@ logger.addHandler(log_handler)
 @requires_permission("read")
 def bulk_retrieve_readings():
     try:
-        
         # Extract client_id from token info
         client_id = getattr(g, 'token_info', {}).get('client_id', 'Unknown')
 
@@ -38,6 +39,11 @@ def bulk_retrieve_readings():
         missing_params = [param for param in required_params if param not in data]
 
         if missing_params:
+            bulk_logger.warning({
+                'client_id': client_id,
+                'error': 'missing_parameters',
+                'missing_params': missing_params
+            })
             return jsonify({
                 'error': 'missing_parameters',
                 'message': f'Missing parameters: {", ".join(missing_params)}'
@@ -52,19 +58,32 @@ def bulk_retrieve_readings():
         # Validate logical device names
         invalid_names, message = validate_logical_device_names(logical_device_names)
         if invalid_names:
-            logger.warning({"client_id": client_id, "error": "Invalid logical_device_names", "invalid_names": invalid_names})
-            #return jsonify({'error': 'invalid_logical_device_names', 'message': message}), 400
+            bulk_logger.warning({
+                'client_id': client_id,
+                'error': 'Invalid logical_device_names',
+                'invalid_names': invalid_names
+            })
+            # You can return an error here if desired, or log and continue processing
+            # return jsonify({'error': 'invalid_logical_device_names', 'message': message}), 400
 
         # Validate division ID
         valid, message = validate_division_id(division_id)
         if not valid:
-            logger.warning({"client_id": client_id, "error": "Invalid division_id", "message": message})
+            bulk_logger.warning({
+                'client_id': client_id,
+                'error': 'Invalid division_id',
+                'message': message
+            })
             return jsonify({'error': 'invalid_division_id', 'message': message}), 400
 
         # Validate date
         valid, message = validate_date(date)
         if not valid:
-            logger.warning({"client_id": client_id, "error": "Invalid date", "message": message})
+            bulk_logger.warning({
+                'client_id': client_id,
+                'error': 'Invalid date',
+                'message': message
+            })
             return jsonify({'error': 'invalid_date', 'message': message}), 400
 
         # Process valid device names
@@ -84,7 +103,11 @@ def bulk_retrieve_readings():
                         "message": f'Logical device name "{name}" is invalid. Only alphanumeric characters are allowed.'
                     })
             except Exception as e:
-                logger.error({"client_id": client_id, "error": f"Error retrieving reading for device {name}", "exception": str(e)})
+                bulk_logger.error({
+                    'client_id': client_id,
+                    'error': f"Error retrieving reading for device {name}",
+                    'exception': str(e)
+                })
                 results.append({
                     "logical_device_name": name,
                     "reading_status": "error",
@@ -92,10 +115,18 @@ def bulk_retrieve_readings():
                 })
 
         # Log successful access
-        logger.info({"client_id": client_id, "action": "bulk_retrieve_readings", "retrieved_data": results})
+        bulk_logger.info({
+            'client_id': client_id,
+            'action': 'bulk_retrieve_readings',
+            'retrieved_data': results
+        })
 
         return jsonify({"result": results}), 200
 
     except Exception as e:
-        logger.exception({"client_id": getattr(g, 'token_info', {}).get('client_id', 'Unknown'), "error": "Unexpected error", "exception": str(e)})
+        bulk_logger.exception({
+            'client_id': getattr(g, 'token_info', {}).get('client_id', 'Unknown'),
+            'error': 'Unexpected error',
+            'exception': str(e)
+        })
         return jsonify({'error': 'internal_server_error', 'message': str(e)}), 500
